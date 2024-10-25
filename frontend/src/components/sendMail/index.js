@@ -1,19 +1,19 @@
-// First install react-hook-form:
-// npm install react-hook-form
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
+// import { X } from 'lucide-react';
 
 const EmailSMSSender = () => {
   const [mode, setMode] = useState('email');
   const [isLimitSelectOpen, setIsLimitSelectOpen] = useState(false);
+  const [recipients, setRecipients] = useState([]);
   
   const { 
     register, 
     handleSubmit, 
     reset,
     formState: { errors },
-    setValue 
+    setValue,
+    watch 
   } = useForm({
     defaultValues: {
       recipients: '',
@@ -25,36 +25,107 @@ const EmailSMSSender = () => {
   });
 
   const onSubmit = (data) => {
-    console.log('Submitted:', { mode, ...data });
-    // Here you would typically send the data to your backend
-    reset(); // Reset form after submission
+    console.log('Submitted:', { 
+      ...data,
+      mode, 
+      recipients // Use the recipients array instead of form input
+    });
+    // Reset form and recipients after submission
+    reset();
+    setRecipients([]);
   };
 
-  // Validate email addresses
-  const validateEmails = (value) => {
-    if (mode === 'email') {
-      const emails = value.split(',').map(email => email.trim());
-      const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
-      const invalidEmails = emails.filter(email => !emailRegex.test(email));
-      if (invalidEmails.length) {
-        return `Invalid email(s): ${invalidEmails.join(', ')}`;
-      }
-    }
-    return true;
+  // Email validation
+  const validateEmail = (email) => {
+    const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+    return emailRegex.test(email);
   };
 
-  // Validate phone numbers
-  const validatePhones = (value) => {
-    if (mode === 'phone') {
-      const phones = value.split(',').map(phone => phone.trim());
-      const phoneRegex = /^\+?[\d\s-]{10,}$/; // Basic phone validation
-      const invalidPhones = phones.filter(phone => !phoneRegex.test(phone));
-      if (invalidPhones.length) {
-        return `Invalid phone number(s): ${invalidPhones.join(', ')}`;
+  // Phone validation
+  const validatePhone = (phone) => {
+    const phoneRegex = /^\+?[\d\s-]{10,}$/;
+    return phoneRegex.test(phone);
+  };
+
+  // Handle input change and comma/enter key press
+  const handleRecipientInputChange = (e) => {
+    const value = e.target.value;
+    
+    // Split on commas and handle each value
+    // if (value.includes(',')) {
+    //   const newValues = value.split(',').map(v => v.trim()).filter(v => v);
+      
+    //   // Process each value
+    //   newValues.forEach(val => {
+    //     if (mode === 'email' && validateEmail(val)) {
+    //       if (!recipients.includes(val)) {
+    //         setRecipients(prev => [...prev, val]);
+    //       }
+    //     } else if (mode === 'phone' && validatePhone(val)) {
+    //       if (!recipients.includes(val)) {
+    //         setRecipients(prev => [...prev, val]);
+    //       }
+    //     }
+    //   });
+      
+    //   // Clear the input
+    //   e.target.value = '';
+    // }
+  };
+
+  // Handle key press (for Enter key)
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const value = e.target.value.trim();
+      
+      if (value) {
+        if (mode === 'email' && validateEmail(value)) {
+          if (!recipients.includes(value)) {
+            setRecipients(prev => [...prev, value]);
+          }
+          e.target.value = '';
+        } else if (mode === 'phone' && validatePhone(value)) {
+          if (!recipients.includes(value)) {
+            setRecipients(prev => [...prev, value]);
+          }
+          e.target.value = '';
+        }
+      }
+    }else if(e.key === 'Backspace'){
+      if(!e.target.value.length){
+        const newRecipients = recipients.splice(recipients.length-1,1)
+        setRecipients([...newRecipients])
       }
     }
-    return true;
   };
+
+  // Remove recipient
+  const removeRecipient = (recipient) => {
+    setRecipients(recipients.filter(r => r !== recipient));
+  };
+
+  const handleBlur = (e) => {
+    const value = e.target.value
+    const splittedEmails = value.split(',');
+
+    if(splittedEmails.length)
+      splittedEmails.map(mail => {
+        if (value) {
+          if (mode === 'email' && validateEmail(value)) {
+            if (!recipients.includes(value)) {
+              setRecipients(prev => [...prev, value]);
+            }
+            e.target.value = '';
+          } else if (mode === 'phone' && validatePhone(value)) {
+            if (!recipients.includes(value)) {
+              setRecipients(prev => [...prev, value]);
+            }
+            e.target.value = '';
+          }
+        }
+      })
+  }
 
   return (
     <div className="container mx-auto p-4">
@@ -62,7 +133,10 @@ const EmailSMSSender = () => {
       <div className="flex justify-center space-x-4 mb-6">
         <button 
           type="button"
-          onClick={() => setMode('email')} 
+          onClick={() => {
+            setMode('email');
+            setRecipients([]);
+          }} 
           className={`px-4 py-2 rounded-md transition-colors ${
             mode === 'email' 
               ? 'bg-blue-600 text-white' 
@@ -73,7 +147,10 @@ const EmailSMSSender = () => {
         </button>
         <button 
           type="button"
-          onClick={() => setMode('phone')} 
+          onClick={() => {
+            setMode('phone');
+            setRecipients([]);
+          }} 
           className={`px-4 py-2 rounded-md transition-colors ${
             mode === 'phone' 
               ? 'bg-blue-600 text-white' 
@@ -100,28 +177,44 @@ const EmailSMSSender = () => {
                 htmlFor="recipients"
                 className="block text-sm font-medium text-gray-700"
               >
-                {mode === 'email' ? 'Email Addresses' : 'Phone Numbers'} (comma-separated)
+                {mode === 'email' ? 'Email Addresses' : 'Phone Numbers'}
               </label>
-              <input
-                id="recipients"
-                type="text"
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.recipients ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder={mode === 'email' 
-                  ? 'email1@example.com, email2@example.com' 
-                  : '1234567890, 0987654321'}
-                {...register('recipients', {
-                  required: 'This field is required',
-                  validate: (value) => validateEmails(value) && validatePhones(value)
-                })}
-              />
-              {errors.recipients && (
-                <p className="text-red-500 text-sm mt-1">{errors.recipients.message}</p>
+              <div className="flex min-h-[38px] w-full px-3 py-2 border rounded-md focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 border-gray-300">
+                <div className="flex gap-2 max-w-[50%] overflow-auto">
+                  {recipients.map((recipient, index) => (
+                    <div 
+                      key={index}
+                      className="flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-md"
+                    >
+                      <span className="text-sm">{recipient}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeRecipient(recipient)}
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        {/* <X size={14} /> */}
+                        X
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  className="w-full focus:outline-none bg-transparent"
+                  placeholder={mode === 'email' 
+                    ? 'Type or paste emails (comma-separated)' 
+                    : 'Type or paste phone numbers (comma-separated)'}
+                  onChange={handleRecipientInputChange}
+                  onKeyDown={handleKeyPress}
+                  onBlur={handleBlur}
+                />
+              </div>
+              {recipients.length === 0 && (
+                <p className="text-red-500 text-sm mt-1">At least one recipient is required</p>
               )}
             </div>
 
-            {/* Subject Field */}
+            {/* Rest of the form fields remain the same */}
             <div className="space-y-2">
               <label 
                 htmlFor="subject"
@@ -149,7 +242,6 @@ const EmailSMSSender = () => {
               )}
             </div>
 
-            {/* Description Field */}
             <div className="space-y-2">
               <label 
                 htmlFor="description"
@@ -176,9 +268,7 @@ const EmailSMSSender = () => {
               )}
             </div>
 
-            {/* Limit and Interval Fields */}
             <div className="flex space-x-4">
-              {/* Sending Limit */}
               <div className="flex-1 space-y-2">
                 <label 
                   htmlFor="limit"
@@ -237,7 +327,6 @@ const EmailSMSSender = () => {
                 )}
               </div>
 
-              {/* Time Interval */}
               <div className="flex-1 space-y-2">
                 <label 
                   htmlFor="interval"
@@ -269,10 +358,10 @@ const EmailSMSSender = () => {
               </div>
             </div>
 
-            {/* Submit Button */}
             <div className="pt-4 border-t border-gray-200">
               <button
                 type="submit"
+                disabled={recipients.length === 0}
                 className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Send

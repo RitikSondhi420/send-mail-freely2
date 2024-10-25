@@ -5,3 +5,22 @@
 body{
   font-size: 13px !important;
 }
+
+
+::-webkit-scrollbar {
+  width: 5px; /* Width of the scrollbar */
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background:  #e6e6e6; /* Background color of the scrollbar track */
+}
+
+::-webkit-scrollbar-thumb {
+  background:#9c9c9c; /* Color of the scrollbar thumb */
+  border-radius: 8px; /* Round the corners of the scrollbar thumb */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #7e7e7e; /* Color of the scrollbar thumb when hovered */
+}
